@@ -43,4 +43,5 @@ if __name__ == "__main__":
         top_videos = top_por_comentarios(videos, TOP_N)
         if top_videos:
             procesar_corrida(nombre, top_videos,
-                             persona=PERSONA, pais=PAIS, institucion=nombre)
+                             persona=PERSONA, pais=PAIS, institucion=nombre,
+                             tipo_fuente="Oficial", bloque_busqueda="N/A (canal oficial)")

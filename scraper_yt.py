@@ -228,12 +228,18 @@ _bytes_descargados = 0  # acumulado de toda la corrida
 
 # Registro de avance del equipo: cada corrida agrega filas acá, listas para
 # copiar y pegar en el Google Sheet compartido. No se sobreescribe entre corridas.
+#
+# Tipo_Fuente distingue si el video es del canal OFICIAL de la institución o de
+# un TERCERO (vlogger, canal de noticias, egresado, comparativa, etc.) que habla
+# de su oferta. scraper_canales.py siempre cosecha canal oficial -> se llena solo.
+# scraper_consulta.py puede traer una mezcla -> se deja en blanco para que la
+# persona revise cada video y lo marque a mano en el Sheet antes de subirlo.
 ARCHIVO_REGISTRO_EQUIPO = "registro_avance_equipo.csv"
-COLUMNAS_REGISTRO = ("Fecha_scrapeo", "Persona", "Pais", "Institucion",
-                     "Video_id", "Titulo", "Duracion_min", "Comentarios")
+COLUMNAS_REGISTRO = ("Fecha_scrapeo", "Persona", "Pais", "Institucion", "Tipo_Fuente",
+                     "Bloque_Busqueda", "Video_id", "Titulo", "Duracion_min", "Comentarios")
 
 
-def registrar_avance(persona, pais, institucion, top_videos):
+def registrar_avance(persona, pais, institucion, top_videos, tipo_fuente="", bloque_busqueda=""):
     """Agrega una fila por video al registro compartido (para pegar en el Sheet)."""
     existe = os.path.isfile(ARCHIVO_REGISTRO_EQUIPO)
     with open(ARCHIVO_REGISTRO_EQUIPO, "a", newline="", encoding="utf-8-sig") as f:
@@ -247,6 +253,8 @@ def registrar_avance(persona, pais, institucion, top_videos):
                 "Persona": persona,
                 "Pais": pais,
                 "Institucion": institucion,
+                "Tipo_Fuente": tipo_fuente,
+                "Bloque_Busqueda": bloque_busqueda,
                 "Video_id": info["video_id"],
                 "Titulo": info["titulo"],
                 "Duracion_min": info.get("duracion_min", ""),
@@ -254,12 +262,16 @@ def registrar_avance(persona, pais, institucion, top_videos):
             })
 
     minutos_corrida = sum(v.get("duracion_min", 0) for v in top_videos)
+    aviso_tipo_fuente = ("" if tipo_fuente else
+                         " Revisa cada video y marca Tipo_Fuente (Oficial/Tercero) en el Sheet.")
     print(f"\n[Registro] +{len(top_videos)} videos ({minutos_corrida/60:.1f} horas) "
-          f"agregados a '{ARCHIVO_REGISTRO_EQUIPO}'. Copia estas filas al Sheet compartido.")
+          f"agregados a '{ARCHIVO_REGISTRO_EQUIPO}'. Copia estas filas al Sheet compartido."
+          f"{aviso_tipo_fuente}")
 
 
 def procesar_corrida(nombre, top_videos, columnas=COLUMNAS,
-                     persona=None, pais=None, institucion=None):
+                     persona=None, pais=None, institucion=None,
+                     tipo_fuente="", bloque_busqueda=""):
     """Carpeta de corrida + carpeta por video (mkv + csv) + csv general.
 
     Si se pasan persona/pais/institucion, además registra el avance en
@@ -298,7 +310,8 @@ def procesar_corrida(nombre, top_videos, columnas=COLUMNAS,
     print(f"{total} comentarios en '{archivo_general}'.")
 
     if persona and pais and institucion:
-        registrar_avance(persona, pais, institucion, top_videos)
+        registrar_avance(persona, pais, institucion, top_videos,
+                         tipo_fuente=tipo_fuente, bloque_busqueda=bloque_busqueda)
     else:
         print("[!] No se registró avance de equipo (falta persona/pais/institucion). "
               "Pasa estos datos a procesar_corrida() para llevar el conteo de horas.")
